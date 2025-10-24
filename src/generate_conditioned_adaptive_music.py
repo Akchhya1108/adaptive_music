@@ -36,6 +36,7 @@ def sequence_to_midi(sequence, output_path):
         dur = float(dur)
         track.append(Message('note_on', note=note, velocity=64, time=int(start*480)))
         track.append(Message('note_off', note=note, velocity=64, time=int(dur*480)))
+
     Path(output_path).parent.mkdir(exist_ok=True, parents=True)
     midi.save(output_path)
     print(f"MIDI saved to {output_path}")
@@ -48,19 +49,21 @@ def generate_conditioned_music(start_sequence, conditioning_sequence, num_steps=
     start_sequence: list of shape (seq_len, 3) containing initial MIDI events
     conditioning_sequence: list of shape (num_steps, cond_size) representing game-state
     """
-    generated = start_sequence.copy()
+    # Ensure each element is (3,)
+    generated = [np.array(n, dtype=np.float32) for n in start_sequence]
 
     for t in range(num_steps):
-        # take last SEQUENCE_LENGTH steps as input
-        seq_input = np.array(generated[-SEQUENCE_LENGTH:], dtype=np.float32).reshape(1, -1, 3)
+        seq_input = np.stack(generated[-SEQUENCE_LENGTH:]).reshape(1, SEQUENCE_LENGTH, 3)
         cond_input = np.array(conditioning_sequence[t], dtype=np.float32).reshape(1, -1)
 
         seq_tensor = torch.tensor(seq_input, dtype=torch.float32).to(DEVICE)
         cond_tensor = torch.tensor(cond_input, dtype=torch.float32).to(DEVICE)
 
         with torch.no_grad():
-            next_note = model(seq_tensor, cond_tensor)  # (1,3)
-        generated.append(next_note.cpu().numpy().flatten())
+            out_seq = model(seq_tensor, cond_tensor)  # (1, SEQUENCE_LENGTH, 3)
+            next_note = out_seq[:, -1, :]             # take last timestep only
+
+        generated.append(next_note.cpu().numpy().flatten().astype(np.float32))
 
     return np.array(generated)
 
@@ -71,15 +74,14 @@ if __name__ == "__main__":
     # Load starting MIDI sequence
     midi_data = load_midi_files("../data")
     sequences = midi_to_sequence(midi_data)
-    start_sequence = sequences[0][:SEQUENCE_LENGTH]  # take first seq
+    start_sequence = sequences[0][:SEQUENCE_LENGTH]  # take first sequence
 
-    # Create a dummy conditioning sequence for demo
-    # Here cond = [combat_intensity, tempo_factor, tension_level] for example
+    # Create dummy conditioning sequence (example: combat_intensity, tempo_factor, tension_level)
     conditioning_sequence = np.zeros((NUM_STEPS, 3), dtype=np.float32)
     for i in range(NUM_STEPS):
-        if i < NUM_STEPS//3:
+        if i < NUM_STEPS // 3:
             conditioning_sequence[i] = [1.0, 1.0, 0.2]  # calm
-        elif i < 2*NUM_STEPS//3:
+        elif i < 2 * NUM_STEPS // 3:
             conditioning_sequence[i] = [2.0, 1.2, 0.8]  # combat
         else:
             conditioning_sequence[i] = [1.0, 1.0, 0.1]  # exploration
