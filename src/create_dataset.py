@@ -1,4 +1,5 @@
 import numpy as np
+import os
 
 def create_sequences(all_sequences, sequence_length=32):
     """
@@ -29,3 +30,10 @@ if __name__ == "__main__":
     X, y = create_sequences(sequences, sequence_length=32)
     print("X shape:", X.shape)
     print("y shape:", y.shape)
+
+    # ---- Save processed data ----
+    os.makedirs("../data", exist_ok=True)
+    np.save("../data/processed_midi.npy", X)
+    np.save("../data/processed_midi_y.npy", y)
+    print("Processed MIDI dataset saved at '../data/processed_midi.npy' and '../data/processed_midi_y.npy'")
+
