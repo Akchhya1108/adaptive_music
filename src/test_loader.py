@@ -3,6 +3,7 @@ from midi_loader import load_midi_files
 # Load all MIDI files from data folder
 midi_data = load_midi_files("./data")
 
+
 print(f"Loaded {len(midi_data)} MIDI files.")
 
 # Optional: show details of first one
