@@ -2,7 +2,7 @@ import torch
 import numpy as np
 from music21 import stream, note, tempo
 import json
-from model import MusicLSTM  # make sure your model.py file defines MusicRNN
+from model import MusicLSTM 
 
 # Load data
 with open("data/notes.json", "r") as f:
@@ -18,10 +18,12 @@ mood_settings = {
     "happy": {"tempo": 90, "transpose": 0},
     "tense": {"tempo": 120, "transpose": 2},
     "battle": {"tempo": 140, "transpose": 3},
+    "exploration": {"tempo": 110, "transpose": 2.5},
+    
 }
 
 # Choose your mood here 👇
-MOOD = "happy"  # change between calm, happy, tense, battle
+MOOD = "exploration"  # change between calm, happy, tense, battle
 
 # Load model
 model = MusicLSTM(len(unique_notes))
